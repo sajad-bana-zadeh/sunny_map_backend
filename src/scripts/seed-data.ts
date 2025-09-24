@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 const samplePoints = [
   {
     name: "Store Alpha",
@@ -32,8 +30,20 @@ const samplePoints = [
 
 async function seedData() {
   try {
-    const response = await axios.post('http://localhost:3000/api/points/import', samplePoints);
-    console.log('Data seeded successfully:', response.data);
+    const response = await fetch('http://localhost:3000/api/points/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(samplePoints),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Data seeded successfully:', data);
   } catch (error) {
     console.error('Error seeding data:', error);
   }

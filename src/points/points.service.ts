@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Point } from '../entities/point.entity';
@@ -41,9 +41,10 @@ export class PointsService {
       const latGrid = Math.floor(point.latitude / gridSize) * gridSize;
       const lngGrid = Math.floor(point.longitude / gridSize) * gridSize;
       const gridKey = `${latGrid},${lngGrid}`;
-      
-      if (!densityMap.has(gridKey)) {
-        densityMap.set(gridKey, {
+
+      let grid = densityMap.get(gridKey);
+      if (!grid) {
+        grid = {
           count: 0,
           bounds: [
             [latGrid, lngGrid],
@@ -52,10 +53,10 @@ export class PointsService {
             [latGrid, lngGrid + gridSize],
             [latGrid, lngGrid], // Close the polygon
           ],
-        });
+        };
+        densityMap.set(gridKey, grid);
       }
-      
-      const grid = densityMap.get(gridKey);
+
       grid.count++;
     });
 
@@ -67,11 +68,15 @@ export class PointsService {
   }
 
   async findClosestPoint(
-    productName?: string,
-    productType?: string,
-    latitude?: number,
-    longitude?: number,
+    productName: string | undefined,
+    productType: string | undefined,
+    latitude: number,
+    longitude: number,
   ) {
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      throw new BadRequestException('Latitude and longitude are required to find the closest point');
+    }
+
     const points = await this.pointRepository.find();
     
     // Filter points based on inventory criteria
